@@ -3,6 +3,7 @@
 
 #include <cstdarg>
 #include <cstdint>
+#include <cstring>
 #include <stdexcept>
 #include <string>
 
