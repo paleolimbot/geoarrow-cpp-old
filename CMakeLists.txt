@@ -18,13 +18,13 @@ set_target_properties(geoarrow PROPERTIES
     POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS})
 
 if(BUILD_EXAMPLES)
-  # add_executable(example-simple examples/example-simple/example-simple.cc)
-  # arget_link_libraries(example-simple PUBLIC s2geography s2)
+  add_executable(example-bbox examples/example-bbox/example-bbox.cpp)
+  target_link_libraries(example-bbox PUBLIC geoarrow)
 endif()
 
 install(TARGETS geoarrow DESTINATION lib)
 install(DIRECTORY src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp")
 
 if(BUILD_EXAMPLES)
-  # install(TARGETS example-simple DESTINATION examples)
+  install(TARGETS example-bbox DESTINATION examples)
 endif()
