@@ -1,0 +1,33 @@
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+name: Run Examples
+
+jobs:
+  build-and-run-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install CMake
+        run: |
+          sudo apt-get install -y cmake
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_EXAMPLES=ON
+          cmake --build .
+          cmake --install . --prefix ../dist
+
+      - name: Run example-bbox
+        run: |
+          ./dist/examples/example-bbox "LINESTRING Z (0 1 2, 3 4 5)"
