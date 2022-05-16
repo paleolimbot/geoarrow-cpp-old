@@ -23,6 +23,7 @@ int main(int argc, char* argv[]) {
 
   // Create the ArrayView, which provides some geo-specific methods
   std::unique_ptr<ArrayView> view(create_view(input.schema));
+  view->set_array(&input.array_data);
 
   // Create a geo-specific builder that can read an ArrayView as input
   ComputeOptions options;
@@ -32,7 +33,6 @@ int main(int argc, char* argv[]) {
 
   // Do the operation
   view->read_meta(output_builder.get());
-  view->set_array(&input.array_data);
   view->read_features(output_builder.get());
 
   // Get the output

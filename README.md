@@ -2,7 +2,9 @@
 
 [![Examples](https://github.com/paleolimbot/geoarrow-cpp/actions/workflows/run-examples.yaml/badge.svg)](https://github.com/paleolimbot/geoarrow-cpp/actions/workflows/run-examples.yaml)
 
-The geoarrow-cpp library is a mostly header-only library that implements some utilities based on the draft [GeoArrow specification](https://github.com/geopandas/geo-arrow-spec) and the [Arrow C Data Interface](https://arrow.apache.org/docs/format/CDataInterface.html). The library is designed to facilitate experimenting with
+The geoarrow-cpp library is a mostly header-only library that implements reading and building Arrow arrays based on the draft [GeoArrow specification](https://github.com/geopandas/geo-arrow-spec) and the [Arrow C Data Interface](https://arrow.apache.org/docs/format/CDataInterface.html). The library is designed to import and export geospatial data in Arrow format to facilitate geospatial support in Arrow-based libraries and allow geospatial libraries to leverage Arrow readers, writers, and language bindings.
+
+This is a draft library intended for experimentation and community feedback. For an example of its use, see the [geoarrow package for R](https://github.com/paleolimbot/geoarrow) (also where this code is tested).
 
 ## Example
 
@@ -33,6 +35,7 @@ int main(int argc, char* argv[]) {
 
   // Create the ArrayView, which provides some geo-specific methods
   std::unique_ptr<ArrayView> view(create_view(input.schema));
+  view->set_array(&input.array_data);
 
   // Create a geo-specific builder that can read an ArrayView as input
   ComputeOptions options;
@@ -42,7 +45,6 @@ int main(int argc, char* argv[]) {
 
   // Do the operation
   view->read_meta(output_builder.get());
-  view->set_array(&input.array_data);
   view->read_features(output_builder.get());
 
   // Get the output
@@ -83,7 +85,7 @@ int main(int argc, char* argv[]) {
 
 At least two options:
 
-1. Copy contents of the `src/geoarrow/` into your favourite include directory and `#include <geoarrow.cpp>` somewhere in your project exactly one.
+1. Copy contents of the `src/geoarrow/` into your favourite include directory and `#include <geoarrow.cpp>` somewhere in your project exactly once.
 2. Clone and use `cmake`, `cmake --build`, and `cmake --install` to build/install the shared library and add `-L/path/to/geoarrow/lib -lgeoarrow` to your favourite linker flag configuration.
 
-In all cases you will want to copy this project/pin your build to a specific commit since it's likely to change rapidly and regularly.
+In all cases you will want to copy this project/pin your build to a specific commit since it will change rapidly and regularly.
