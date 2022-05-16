@@ -12,11 +12,12 @@ namespace hpp {
 
 namespace builder {
 
-class StructArrayBuilder: public ArrayBuilder {
-public:
+class StructArrayBuilder : public ArrayBuilder {
+ public:
   StructArrayBuilder() {}
 
-  void add_child(std::unique_ptr<ArrayBuilder> child, const std::string& name = "") {
+  void add_child(std::unique_ptr<ArrayBuilder> child,
+                 const std::string& name = "") {
     set_size(child->size());
     child->set_name(name);
     children_.push_back(std::move(child));
@@ -33,7 +34,7 @@ public:
 
   void reserve(int64_t additional_capacity) {
     ArrayBuilder::reserve(additional_capacity);
-    for (auto& child: children_) {
+    for (auto& child : children_) {
       child->reserve(additional_capacity);
     }
   }
@@ -49,20 +50,19 @@ public:
     finalizer.array_data.null_count = validity_buffer_builder_.null_count();
 
     for (int64_t i = 0; i < num_children(); i++) {
-      children_[i]->release(
-        finalizer.array_data.children[i],
-        finalizer.schema->children[i]);
+      children_[i]->release(finalizer.array_data.children[i],
+                            finalizer.schema->children[i]);
     }
 
     finalizer.release(array_data, schema);
   }
 
-protected:
+ protected:
   std::vector<std::unique_ptr<ArrayBuilder>> children_;
 };
 
-}
+}  // namespace builder
 
-}
+}  // namespace hpp
 
-}
+}  // namespace arrow

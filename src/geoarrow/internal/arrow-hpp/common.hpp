@@ -1,9 +1,9 @@
 
 #pragma once
 
+#include <cstdarg>
 #include <cstdint>
 #include <stdexcept>
-#include <cstdarg>
 #include <string>
 
 #ifndef ARROW_FLAG_DICTIONARY_ORDERED
@@ -45,7 +45,6 @@ struct ArrowArrayStream {
   void (*release)(struct ArrowArrayStream*);
   void* private_data;
 };
-
 }
 #endif
 
@@ -53,11 +52,9 @@ namespace arrow {
 namespace hpp {
 namespace util {
 
-class Exception: public std::exception {
-public:
-  Exception() {
-    memset(error_, 0, sizeof(error_));
-  }
+class Exception : public std::exception {
+ public:
+  Exception() { memset(error_, 0, sizeof(error_)); }
 
   Exception(const std::string& error) {
     memset(error_, 0, sizeof(error_));
@@ -76,14 +73,12 @@ public:
     va_end(args);
   }
 
-  const char* what() const noexcept {
-    return error_;
-  }
+  const char* what() const noexcept { return error_; }
 
-protected:
+ protected:
   char error_[8096];
 };
 
-}
-}
-}
+}  // namespace util
+}  // namespace hpp
+}  // namespace arrow

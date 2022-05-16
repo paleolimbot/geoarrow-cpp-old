@@ -1,10 +1,10 @@
 
 #pragma once
 
-#include <cstdlib>
-#include <limits>
-#include <cstring>
 #include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
 #include <string>
 
 #include "common.hpp"
@@ -18,19 +18,20 @@
 // struct ArrowArray/struct ArrowSchema.
 
 // These release callbacks can't be header only (I think)
-void arrow_hpp_builder_release_array_data_internal(struct ArrowArray* array_data);
+void arrow_hpp_builder_release_array_data_internal(
+    struct ArrowArray* array_data);
 
 #ifdef ARROW_HPP_IMPL
 
 // The .release() callback for all struct ArrowArrays populated here
-void arrow_hpp_builder_release_array_data_internal(struct ArrowArray* array_data) {
+void arrow_hpp_builder_release_array_data_internal(
+    struct ArrowArray* array_data) {
   if (array_data != nullptr && array_data->release != nullptr) {
-
     // buffers must be allocated with malloc()
     if (array_data->buffers != nullptr) {
       for (int64_t i = 0; i < array_data->n_buffers; i++) {
         if (array_data->buffers[i] != nullptr) {
-          free((void*) array_data->buffers[i]);
+          free((void*)array_data->buffers[i]);
         }
       }
 
@@ -84,8 +85,8 @@ namespace builder {
 // populated by the caller. This ArrowArray owns the memory of its children
 // and dictionary (i.e., the parent release() callback will call the release()
 // method of each child and then free() it).
-inline void allocate_array_data(struct ArrowArray* array_data, int64_t n_buffers,
-                                int64_t n_children) {
+inline void allocate_array_data(struct ArrowArray* array_data,
+                                int64_t n_buffers, int64_t n_children) {
   array_data->length = 0;
   array_data->null_count = -1;
   array_data->offset = 0;
@@ -98,13 +99,13 @@ inline void allocate_array_data(struct ArrowArray* array_data, int64_t n_buffers
   array_data->release = &arrow_hpp_builder_release_array_data_internal;
 
   if (n_buffers > 0) {
-    array_data->buffers = reinterpret_cast<const void**>(
-      malloc(n_buffers * sizeof(const void*)));
+    array_data->buffers =
+        reinterpret_cast<const void**>(malloc(n_buffers * sizeof(const void*)));
 
     if (array_data->buffers == nullptr) {
       arrow_hpp_builder_release_array_data_internal(array_data);
       throw util::Exception(
-        "Failed to allocate array_data->buffers of size %lld", n_buffers);
+          "Failed to allocate array_data->buffers of size %lld", n_buffers);
     }
 
     memset(array_data->buffers, 0, n_buffers * sizeof(const void*));
@@ -112,23 +113,24 @@ inline void allocate_array_data(struct ArrowArray* array_data, int64_t n_buffers
 
   if (n_children > 0) {
     array_data->children = reinterpret_cast<struct ArrowArray**>(
-      malloc(n_children * sizeof(struct ArrowArray*)));
+        malloc(n_children * sizeof(struct ArrowArray*)));
 
     if (array_data->children == nullptr) {
       arrow_hpp_builder_release_array_data_internal(array_data);
       throw util::Exception(
-        "Failed to allocate array_data->children of size %lld", n_children);
+          "Failed to allocate array_data->children of size %lld", n_children);
     }
 
     memset(array_data->children, 0, n_children * sizeof(struct ArrowArray*));
 
     for (int64_t i = 0; i < n_children; i++) {
       array_data->children[i] = reinterpret_cast<struct ArrowArray*>(
-        malloc(sizeof(struct ArrowArray)));
+          malloc(sizeof(struct ArrowArray)));
 
       if (array_data->children[i] == nullptr) {
         arrow_hpp_builder_release_array_data_internal(array_data);
-        throw util::Exception("Failed to allocate array_data->children[%lld]", i);
+        throw util::Exception("Failed to allocate array_data->children[%lld]",
+                              i);
       }
 
       array_data->children[i]->release = nullptr;
@@ -145,7 +147,7 @@ inline void allocate_array_data(struct ArrowArray* array_data, int64_t n_buffers
 // is to declare a CArrayFinalizer at the beginning of the ArrayBuilder's
 // release() method, and call release() before returning.
 class CArrayFinalizer {
-public:
+ public:
   struct ArrowArray array_data;
   struct ArrowSchema* schema;
 
@@ -163,16 +165,15 @@ public:
     schema_finalizer_.set_format(format);
   }
 
-  void set_schema_name(const char* name) {
-    schema_finalizer_.set_name(name);
-  }
+  void set_schema_name(const char* name) { schema_finalizer_.set_name(name); }
 
   void set_schema_metadata(const std::vector<std::string>& names,
                            const std::vector<std::string>& values) {
     schema_finalizer_.set_metadata(names, values);
   }
 
-  void release(struct ArrowArray* array_data_out, struct ArrowSchema* schema_out) {
+  void release(struct ArrowArray* array_data_out,
+               struct ArrowSchema* schema_out) {
     // The output pointers must be non-null but must be released before they
     // get here (or else they will leak).
     schema_finalizer_.release(schema_out);
@@ -185,7 +186,6 @@ public:
       array_data_out->release(array_data_out);
     }
 
-
     memcpy(array_data_out, &array_data, sizeof(struct ArrowArray));
     array_data.release = nullptr;
   }
@@ -196,15 +196,15 @@ public:
     }
   }
 
-private:
+ private:
   SchemaFinalizer schema_finalizer_;
 };
 
-template<typename BufferT>
+template <typename BufferT>
 class BufferBuilder {
-public:
-  BufferBuilder(int64_t capacity = 1024): data_(nullptr), capacity_(-1),
-    size_(0), growth_factor_(2) {
+ public:
+  BufferBuilder(int64_t capacity = 1024)
+      : data_(nullptr), capacity_(-1), size_(0), growth_factor_(2) {
     reallocate(capacity);
   }
 
@@ -214,9 +214,7 @@ public:
     }
   }
 
-  void write_element(BufferT item) {
-    write_buffer(&item, 1);
-  }
+  void write_element(BufferT item) { write_buffer(&item, 1); }
 
   void shrink() { reallocate(size_); }
 
@@ -229,9 +227,7 @@ public:
   void reserve(int64_t additional_capacity) {
     if ((size_ + additional_capacity) > capacity_) {
       int64_t target_capacity = std::max<int64_t>(
-        capacity_ * growth_factor_ + 1,
-        size_ + additional_capacity
-      );
+          capacity_ * growth_factor_ + 1, size_ + additional_capacity);
 
       reallocate(target_capacity);
     }
@@ -250,7 +246,7 @@ public:
     BufferT* new_data = reinterpret_cast<BufferT*>(realloc(data_, n_bytes));
     if (new_data == nullptr) {
       throw util::Exception(
-        "Failed to allocate BufferBuilder::data_ of capacity %lld", capacity);
+          "Failed to allocate BufferBuilder::data_ of capacity %lld", capacity);
     }
 
     data_ = new_data;
@@ -271,7 +267,7 @@ public:
   int64_t size() { return size_; }
   int64_t remaining_capacity() { return capacity_ - size_; }
 
-protected:
+ protected:
   BufferT* data_;
   int64_t capacity_;
   int64_t size_;
@@ -279,10 +275,14 @@ protected:
 };
 
 class BitmapBuilder {
-public:
-  BitmapBuilder():
-    buffer_builder_(0), null_count_(0), buffer_(0), buffer_size_(0), size_(0),
-    allocated_(false) {}
+ public:
+  BitmapBuilder()
+      : buffer_builder_(0),
+        null_count_(0),
+        buffer_(0),
+        buffer_size_(0),
+        size_(0),
+        allocated_(false) {}
 
   virtual ~BitmapBuilder() {}
 
@@ -322,7 +322,7 @@ public:
   void write_element(bool value) {
     size_++;
     null_count_ += !value;
-    buffer_ = buffer_ | (((uint8_t) value) << buffer_size_);
+    buffer_ = buffer_ | (((uint8_t)value) << buffer_size_);
     buffer_size_++;
     if (buffer_size_ == 8) {
       if (buffer_ == 0xff && !allocated_) {
@@ -364,7 +364,7 @@ public:
 
   int64_t null_count() { return null_count_; }
 
-private:
+ private:
   BufferBuilder<uint8_t> buffer_builder_;
   int64_t null_count_;
   uint8_t buffer_;
@@ -374,10 +374,8 @@ private:
 
   void trigger_alloc(int64_t capacity) {
     reallocate(capacity);
-    memset(
-      buffer_builder_.mutable_data() + buffer_builder_.size(),
-      0xff,
-      buffer_builder_.capacity());
+    memset(buffer_builder_.mutable_data() + buffer_builder_.size(), 0xff,
+           buffer_builder_.capacity());
     allocated_ = true;
     if (size_ > 0) {
       buffer_builder_.advance((size_ - 1) / 8);
@@ -385,10 +383,9 @@ private:
   }
 };
 
-
 class ArrayBuilder {
-public:
-  ArrayBuilder(): name_(""), size_(0) {}
+ public:
+  ArrayBuilder() : name_(""), size_(0) {}
 
   virtual ~ArrayBuilder() {}
 
@@ -405,17 +402,16 @@ public:
     validity_buffer_builder_.reserve(additional_capacity);
   }
 
-  virtual void shrink() {
-    validity_buffer_builder_.shrink();
-  }
+  virtual void shrink() { validity_buffer_builder_.shrink(); }
 
-  virtual void release(struct ArrowArray* array_data, struct ArrowSchema* schema) {
+  virtual void release(struct ArrowArray* array_data,
+                       struct ArrowSchema* schema) {
     throw util::Exception("Not implemented");
   }
 
   virtual const char* get_format() { return ""; }
 
-protected:
+ protected:
   std::string name_;
   std::vector<std::string> metadata_names_;
   std::vector<std::string> metadata_values_;
@@ -423,10 +419,9 @@ protected:
   builder::BitmapBuilder validity_buffer_builder_;
 };
 
-
 template <typename BufferT>
-class FixedSizeLayoutArrayBuilder: public ArrayBuilder {
-public:
+class FixedSizeLayoutArrayBuilder : public ArrayBuilder {
+ public:
   FixedSizeLayoutArrayBuilder() {}
 
   void reserve(int64_t additional_capacity) {
@@ -446,7 +441,7 @@ public:
 
   void write_buffer(const double* buffer, int64_t n) {
     buffer_builder_.write_buffer(buffer, n);
-    size_+= n;
+    size_ += n;
   }
 
   void release(struct ArrowArray* array_data, struct ArrowSchema* schema) {
@@ -465,18 +460,17 @@ public:
     finalizer.release(array_data, schema);
   }
 
-private:
+ private:
   BufferBuilder<BufferT> buffer_builder_;
-
 };
 
-class Float64ArrayBuilder: public FixedSizeLayoutArrayBuilder<double> {
-public:
+class Float64ArrayBuilder : public FixedSizeLayoutArrayBuilder<double> {
+ public:
   virtual const char* get_format() { return "g"; }
 };
 
-}
+}  // namespace builder
 
-}
+}  // namespace hpp
 
-}
+}  // namespace arrow

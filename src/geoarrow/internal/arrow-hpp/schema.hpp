@@ -14,9 +14,9 @@ extern "C" void arrow_hpp_release_schema_internal(struct ArrowSchema* schema);
 void arrow_hpp_release_schema_internal(struct ArrowSchema* schema) {
   if (schema != nullptr && schema->release != nullptr) {
     // format, name, and metadata must be nullptr or allocated with malloc()
-    if (schema->format != nullptr) free((void*) schema->format);
-    if (schema->name != nullptr) free((void*) schema->name);
-    if (schema->metadata != nullptr) free((void*) schema->metadata);
+    if (schema->format != nullptr) free((void*)schema->format);
+    if (schema->name != nullptr) free((void*)schema->name);
+    if (schema->metadata != nullptr) free((void*)schema->metadata);
 
     // this object owns the memory for all the children, but those
     // children may have been generated elsewhere and might have
@@ -24,7 +24,7 @@ void arrow_hpp_release_schema_internal(struct ArrowSchema* schema) {
     if (schema->children != nullptr) {
       for (int64_t i = 0; i < schema->n_children; i++) {
         if (schema->children[i] != nullptr) {
-          if(schema->children[i]->release != nullptr) {
+          if (schema->children[i]->release != nullptr) {
             schema->children[i]->release(schema->children[i]);
           }
 
@@ -64,7 +64,8 @@ namespace hpp {
 // populated by the caller. This ArrowSchema owns the memory of its children
 // and its dictionary (i.e., the parent release() callback will call the
 // release() method of each child and then free() it).
-inline void allocate_schema(struct ArrowSchema* schema, int64_t n_children = 0) {
+inline void allocate_schema(struct ArrowSchema* schema,
+                            int64_t n_children = 0) {
   // schema->name and/or schema->format must be allocated via malloc()
   schema->format = nullptr;
   schema->name = nullptr;
@@ -78,19 +79,19 @@ inline void allocate_schema(struct ArrowSchema* schema, int64_t n_children = 0) 
 
   if (n_children > 0) {
     schema->children = reinterpret_cast<struct ArrowSchema**>(
-      malloc(n_children * sizeof(struct ArrowSchema*)));
+        malloc(n_children * sizeof(struct ArrowSchema*)));
 
     if (schema->children == nullptr) {
       arrow_hpp_release_schema_internal(schema);
-      throw util::Exception(
-        "Failed to allocate schema->children of size %lld", n_children);
+      throw util::Exception("Failed to allocate schema->children of size %lld",
+                            n_children);
     }
 
     memset(schema->children, 0, n_children * sizeof(struct ArrowSchema*));
 
     for (int64_t i = 0; i < n_children; i++) {
       schema->children[i] = reinterpret_cast<struct ArrowSchema*>(
-        malloc(sizeof(struct ArrowSchema)));
+          malloc(sizeof(struct ArrowSchema)));
 
       if (schema->children[i] == nullptr) {
         arrow_hpp_release_schema_internal(schema);
@@ -136,7 +137,8 @@ static inline int64_t schema_metadata_size(const char* metadata) {
   return pos;
 }
 
-static inline std::vector<std::string> schema_metadata_names(const char* metadata) {
+static inline std::vector<std::string> schema_metadata_names(
+    const char* metadata) {
   std::vector<std::string> names;
 
   if (metadata == NULL) {
@@ -172,8 +174,9 @@ static inline std::vector<std::string> schema_metadata_names(const char* metadat
   return names;
 }
 
-static inline std::string schema_metadata_key(const char* metadata, const std::string& key,
-                                              const std::string& default_value = "") {
+static inline std::string schema_metadata_key(
+    const char* metadata, const std::string& key,
+    const std::string& default_value = "") {
   if (metadata == NULL) {
     return default_value;
   }
@@ -214,63 +217,67 @@ static inline std::string schema_metadata_key(const char* metadata, const std::s
   return default_value;
 }
 
-static inline char* schema_metadata_create(const std::vector<std::string>& names,
-                                           const std::vector<std::string>& values) {
-    if (names.size() != values.size()) {
-        throw util::Exception("names.size() != values.size()");
-    }
+static inline char* schema_metadata_create(
+    const std::vector<std::string>& names,
+    const std::vector<std::string>& values) {
+  if (names.size() != values.size()) {
+    throw util::Exception("names.size() != values.size()");
+  }
 
-    // calculate how much space we need
-    size_t total_size = sizeof(int32_t);
+  // calculate how much space we need
+  size_t total_size = sizeof(int32_t);
 
-    for (const std::string& name: names) {
-        total_size += sizeof(int32_t);
-        total_size += name.size();
-    }
+  for (const std::string& name : names) {
+    total_size += sizeof(int32_t);
+    total_size += name.size();
+  }
 
-    for (const std::string& value: values) {
-        total_size += sizeof(int32_t);
-        total_size += value.size();
-    }
+  for (const std::string& value : values) {
+    total_size += sizeof(int32_t);
+    total_size += value.size();
+  }
 
-    // allocate!
-    char* metadata = reinterpret_cast<char*>(malloc(total_size));
-    if (metadata == nullptr) {
-        throw util::Exception("malloc() of metadata failed");
-    }
+  // allocate!
+  char* metadata = reinterpret_cast<char*>(malloc(total_size));
+  if (metadata == nullptr) {
+    throw util::Exception("malloc() of metadata failed");
+  }
 
-    // serialize the data
-    int64_t pos = 0;
-    int32_t len = names.size();
+  // serialize the data
+  int64_t pos = 0;
+  int32_t len = names.size();
+  memcpy(metadata + pos, &len, sizeof(int32_t));
+  pos += sizeof(int32_t);
+
+  for (size_t i = 0; i < names.size(); i++) {
+    len = names[i].size();
     memcpy(metadata + pos, &len, sizeof(int32_t));
     pos += sizeof(int32_t);
+    memcpy(metadata + pos, names[i].data(), names[i].size());
+    pos += names[i].size();
 
-    for (size_t i = 0; i < names.size(); i++) {
-        len = names[i].size();
-        memcpy(metadata + pos, &len, sizeof(int32_t));
-        pos += sizeof(int32_t);
-        memcpy(metadata + pos, names[i].data(), names[i].size());
-        pos += names[i].size();
+    len = values[i].size();
+    memcpy(metadata + pos, &len, sizeof(int32_t));
+    pos += sizeof(int32_t);
+    memcpy(metadata + pos, values[i].data(), values[i].size());
+    pos += values[i].size();
+  }
 
-        len = values[i].size();
-        memcpy(metadata + pos, &len, sizeof(int32_t));
-        pos += sizeof(int32_t);
-        memcpy(metadata + pos, values[i].data(), values[i].size());
-        pos += values[i].size();
-    }
-
-    return metadata;
+  return metadata;
 }
 
-static inline bool schema_format_identical(struct ArrowSchema* actual, struct ArrowSchema* expected) {
+static inline bool schema_format_identical(struct ArrowSchema* actual,
+                                           struct ArrowSchema* expected) {
   if (strcmp(actual->format, expected->format) != 0) {
     return false;
   }
 
   // At the C level we can't make any assumptions about extension metadata being
   // equal, but the name should be the same
-  std::string actual_ext = schema_metadata_key(actual->metadata, "ARROW:extension:name");
-  std::string expected_ext = schema_metadata_key(expected->metadata, "ARROW:extension:name");
+  std::string actual_ext =
+      schema_metadata_key(actual->metadata, "ARROW:extension:name");
+  std::string expected_ext =
+      schema_metadata_key(expected->metadata, "ARROW:extension:name");
   if (actual_ext != expected_ext) {
     return false;
   }
@@ -301,12 +308,10 @@ static inline bool schema_format_identical(struct ArrowSchema* actual, struct Ar
 }
 
 class SchemaFinalizer {
-public:
+ public:
   struct ArrowSchema schema;
 
-  SchemaFinalizer() {
-    schema.release = nullptr;
-  }
+  SchemaFinalizer() { schema.release = nullptr; }
 
   void allocate(int64_t n_children = 0) {
     allocate_schema(&schema, n_children);
@@ -316,7 +321,7 @@ public:
 
   void set_format(const char* format) {
     if (schema.format != nullptr) {
-      free((void*) schema.format);
+      free((void*)schema.format);
     }
 
     size_t len = strlen(format);
@@ -332,7 +337,7 @@ public:
 
   void set_name(const char* name) {
     if (schema.name != nullptr) {
-      free((void*) schema.name);
+      free((void*)schema.name);
     }
 
     size_t len = strlen(name);
@@ -381,10 +386,10 @@ public:
     }
   }
 
-private:
+ private:
   void set_metadata_internal(char* metadata) {
     if (schema.metadata != nullptr) {
-      free((void*) schema.metadata);
+      free((void*)schema.metadata);
       schema.metadata = nullptr;
     }
 
@@ -392,7 +397,8 @@ private:
   }
 };
 
-static inline void schema_deep_copy(struct ArrowSchema* schema_in, struct ArrowSchema* schema_out) {
+static inline void schema_deep_copy(struct ArrowSchema* schema_in,
+                                    struct ArrowSchema* schema_out) {
   SchemaFinalizer finalizer;
   finalizer.allocate(schema_in->n_children);
   finalizer.set_format(schema_in->format);
@@ -404,7 +410,8 @@ static inline void schema_deep_copy(struct ArrowSchema* schema_in, struct ArrowS
   }
 
   if (schema_in->dictionary != nullptr) {
-    finalizer.schema.dictionary = reinterpret_cast<struct ArrowSchema*>(malloc(sizeof(struct ArrowSchema)));
+    finalizer.schema.dictionary = reinterpret_cast<struct ArrowSchema*>(
+        malloc(sizeof(struct ArrowSchema)));
     if (finalizer.schema.dictionary == nullptr) {
       throw util::Exception("Failed malloc (struct ArrowSchema*)");
     }
@@ -416,6 +423,6 @@ static inline void schema_deep_copy(struct ArrowSchema* schema_in, struct ArrowS
   finalizer.release(schema_out);
 }
 
-}
+}  // namespace hpp
 
-}
+}  // namespace arrow

@@ -1,23 +1,25 @@
 
 #pragma once
 
+#include <cstdlib>
 #include <cstring>
 #include <sstream>
-#include <cstdlib>
 
 #include "handler.hpp"
 
 #ifdef FASTFLOAT_FAST_FLOAT_H
-#define _GEOARROW_FROM_CHARS(first, last, out) fast_float::from_chars(first, last, out)
+#define _GEOARROW_FROM_CHARS(first, last, out) \
+  fast_float::from_chars(first, last, out)
 #else
 namespace {
 
 class from_chars_output_type {
-public:
+ public:
   std::errc ec;
 };
 
-from_chars_output_type from_chars_internal(const char* first, const char* last, double& out) {
+from_chars_output_type from_chars_internal(const char* first, const char* last,
+                                           double& out) {
   from_chars_output_type answer;
   answer.ec = std::errc();
 
@@ -30,9 +32,9 @@ from_chars_output_type from_chars_internal(const char* first, const char* last, 
   return answer;
 }
 
-#define _GEOARROW_FROM_CHARS(first, last, out) from_chars_internal(first, last, out)
-}
-
+#define _GEOARROW_FROM_CHARS(first, last, out) \
+  from_chars_internal(first, last, out)
+}  // namespace
 
 #endif
 
@@ -40,23 +42,25 @@ namespace geoarrow {
 
 namespace util {
 
-class ParserException: public std::runtime_error {
-public:
-  ParserException(std::string expected, std::string found, std::string context):
-  std::runtime_error(makeError(expected, found, context)),
-    expected(expected), found(found), context(context) {}
+class ParserException : public std::runtime_error {
+ public:
+  ParserException(std::string expected, std::string found, std::string context)
+      : std::runtime_error(makeError(expected, found, context)),
+        expected(expected),
+        found(found),
+        context(context) {}
 
   std::string expected;
   std::string found;
   std::string context;
 
-  static std::string makeError(std::string expected, std::string found, std::string context = "") {
+  static std::string makeError(std::string expected, std::string found,
+                               std::string context = "") {
     std::stringstream stream;
     stream << "Expected " << expected << " but found " << found << context;
     return stream.str().c_str();
   }
 };
-
 
 // The Parser class provides the basic helpers needed to parse simple
 // text formats like well-known text. It is not intended to be the pinnacle
@@ -64,9 +68,8 @@ public:
 // messages The intended usage is to subclass the Parser for a particular
 // format.
 class Parser {
-public:
-  Parser(): length(0), offset(0),
-    whitespace(" \r\n\t"), sep(" \r\n\t") {}
+ public:
+  Parser() : length(0), offset(0), whitespace(" \r\n\t"), sep(" \r\n\t") {}
 
   void setBuffer(const char* data, int64_t size) {
     this->offset = 0;
@@ -86,17 +89,13 @@ public:
     return previous_sep;
   }
 
-  int64_t charsLeftInBuffer() {
-    return this->length - this->offset;
-  }
+  int64_t charsLeftInBuffer() { return this->length - this->offset; }
 
   bool checkBuffer(int n_chars) {
     return (this->charsLeftInBuffer() - n_chars) >= 0;
   }
 
-  bool finished() {
-    return !(this->checkBuffer(1));
-  }
+  bool finished() { return !(this->checkBuffer(1)); }
 
   void advance() {
     if (this->checkBuffer(1)) {
@@ -111,7 +110,8 @@ public:
     return out;
   }
 
-  // Returns the character currently ahead of the cursor without advancing the cursor (skips whitespace)
+  // Returns the character currently ahead of the cursor without advancing the
+  // cursor (skips whitespace)
   char peekChar() {
     this->skipWhitespace();
     if (this->checkBuffer(1)) {
@@ -122,9 +122,7 @@ public:
   }
 
   // Returns true if the next character is one of `chars`
-  bool is(char c) {
-    return c == this->peekChar();
-  }
+  bool is(char c) { return c == this->peekChar(); }
 
   // Returns true if the next character is one of `chars`
   bool isOneOf(const char* chars) {
@@ -137,7 +135,8 @@ public:
     if (this->isOneOf("-nNiI.")) {
       std::string text = this->peekUntilSep();
       double out;
-      auto result = _GEOARROW_FROM_CHARS(text.data(), text.data() + text.size(), out);
+      auto result =
+          _GEOARROW_FROM_CHARS(text.data(), text.data() + text.size(), out);
       return result.ec == std::errc();
     } else {
       return this->isOneOf("-0123456789");
@@ -182,7 +181,8 @@ public:
   double assertNumber() {
     std::string text = this->peekUntilSep();
     double out;
-    auto result = _GEOARROW_FROM_CHARS(text.data(), text.data() + text.size(), out);
+    auto result =
+        _GEOARROW_FROM_CHARS(text.data(), text.data() + text.size(), out);
 
     if (result.ec != std::errc()) {
       this->error("a number", quote(text));
@@ -232,9 +232,7 @@ public:
   }
 
   // Asserts that the cursor is at the end of the input
-  void assertFinished() {
-    this->assert_('\0');
-  }
+  void assertFinished() { this->assert_('\0'); }
 
   // Returns the text between the cursor and the next separator,
   // which is defined to be whitespace or the following characters: =;,()
@@ -252,19 +250,20 @@ public:
     return out;
   }
 
-  // Returns the text between the cursor and the next separator without advancing the cursor.
+  // Returns the text between the cursor and the next separator without
+  // advancing the cursor.
   std::string peekUntilSep() {
     this->skipWhitespace();
     int64_t wordLen = peekUntil(this->sep);
     return std::string(this->str + this->offset, wordLen);
   }
 
-  // Advances the cursor past any whitespace, returning the number of characters skipped.
-  int64_t skipWhitespace() {
-    return this->skipChars(this->whitespace);
-  }
+  // Advances the cursor past any whitespace, returning the number of characters
+  // skipped.
+  int64_t skipWhitespace() { return this->skipChars(this->whitespace); }
 
-  // Skips all of the characters in `chars`, returning the number of characters skipped.
+  // Skips all of the characters in `chars`, returning the number of characters
+  // skipped.
   int64_t skipChars(const char* chars) {
     int64_t n_skipped = 0;
     bool found = false;
@@ -311,18 +310,21 @@ public:
     return n_chars;
   }
 
-  [[ noreturn ]] void errorBefore(std::string expected, std::string found) {
-    throw ParserException(expected, quote(found), this->errorContext(this->offset - found.size()));
+  [[noreturn]] void errorBefore(std::string expected, std::string found) {
+    throw ParserException(expected, quote(found),
+                          this->errorContext(this->offset - found.size()));
   }
 
   [[noreturn]] void error(std::string expected, std::string found) {
     std::stringstream stream;
     stream << found;
-    throw ParserException(expected, stream.str(), this->errorContext(this->offset));
+    throw ParserException(expected, stream.str(),
+                          this->errorContext(this->offset));
   }
 
   [[noreturn]] void error(std::string expected) {
-    throw ParserException(expected, quote(this->peekUntilSep()), this->errorContext(this->offset));
+    throw ParserException(expected, quote(this->peekUntilSep()),
+                          this->errorContext(this->offset));
   }
 
   std::string errorContext(int64_t pos) {
@@ -331,7 +333,7 @@ public:
     return stream.str();
   }
 
-private:
+ private:
   const char* str;
   int64_t length;
   int64_t offset;
@@ -372,24 +374,22 @@ private:
   }
 };
 
-// The WKTParser is the Parser subclass with methods specific to well-known text.
-class WKTParser: public Parser {
-public:
-
+// The WKTParser is the Parser subclass with methods specific to well-known
+// text.
+class WKTParser : public Parser {
+ public:
   class WKTMeta {
-  public:
-    WKTMeta():
-      geometry_type(util::GeometryType::GEOMETRY_TYPE_UNKNOWN),
-      dimensions(util::Dimensions::DIMENSIONS_UNKNOWN),
-      is_empty(false) {}
+   public:
+    WKTMeta()
+        : geometry_type(util::GeometryType::GEOMETRY_TYPE_UNKNOWN),
+          dimensions(util::Dimensions::DIMENSIONS_UNKNOWN),
+          is_empty(false) {}
     util::GeometryType geometry_type;
     util::Dimensions dimensions;
     bool is_empty;
   };
 
-  WKTParser() {
-    this->setSeparators(" \r\n\t,();=");
-  }
+  WKTParser() { this->setSeparators(" \r\n\t,();="); }
 
   void assertGeometryMeta(WKTMeta* meta) {
     std::string geometry_type = this->assertWord();
@@ -430,26 +430,24 @@ public:
   util::GeometryType geometry_typeFromString(std::string geometry_type) {
     if (geometry_type == "POINT") {
       return util::GeometryType::POINT;
-    } else if(geometry_type == "LINESTRING") {
+    } else if (geometry_type == "LINESTRING") {
       return util::GeometryType::LINESTRING;
-    } else if(geometry_type == "POLYGON") {
+    } else if (geometry_type == "POLYGON") {
       return util::GeometryType::POLYGON;
-    } else if(geometry_type == "MULTIPOINT") {
+    } else if (geometry_type == "MULTIPOINT") {
       return util::GeometryType::MULTIPOINT;
-    } else if(geometry_type == "MULTILINESTRING") {
+    } else if (geometry_type == "MULTILINESTRING") {
       return util::GeometryType::MULTILINESTRING;
-    } else if(geometry_type == "MULTIPOLYGON") {
+    } else if (geometry_type == "MULTIPOLYGON") {
       return util::GeometryType::MULTIPOLYGON;
-    } else if(geometry_type == "GEOMETRYCOLLECTION") {
+    } else if (geometry_type == "GEOMETRYCOLLECTION") {
       return util::GeometryType::GEOMETRYCOLLECTION;
     } else {
       this->errorBefore("geometry type or 'SRID='", geometry_type);
     }
   }
 
-  bool isEMPTY() {
-    return this->peekUntilSep() == "EMPTY";
-  }
+  bool isEMPTY() { return this->peekUntilSep() == "EMPTY"; }
 
   bool assertEMPTYOrOpen() {
     if (this->isLetter()) {
@@ -468,16 +466,19 @@ public:
   }
 };
 
-}
+}  // namespace util
 
 class WKTReader {
-public:
-  WKTReader(): geometry_type_(util::GeometryType::GEOMETRY_TYPE_UNKNOWN), coord_size_(2) {
+ public:
+  WKTReader()
+      : geometry_type_(util::GeometryType::GEOMETRY_TYPE_UNKNOWN),
+        coord_size_(2) {
     meta_.geometry_type = util::GeometryType::GEOMETRY_TYPE_UNKNOWN;
     meta_.dimensions = util::Dimensions::DIMENSIONS_UNKNOWN;
   }
 
-  Handler::Result read_buffer(Handler* handler, const uint8_t* data, int64_t size) {
+  Handler::Result read_buffer(Handler* handler, const uint8_t* data,
+                              int64_t size) {
     s.setBuffer(reinterpret_cast<const char*>(data), size);
     try {
       Handler::Result result;
@@ -485,12 +486,12 @@ public:
       HANDLE_OR_RETURN(readGeometryWithType(handler));
       s.assertFinished();
       return Handler::Result::CONTINUE;
-    } catch(util::ParserException& e) {
+    } catch (util::ParserException& e) {
       throw util::IOException("%s", e.what());
     }
   }
 
-private:
+ private:
   util::WKTParser s;
   util::WKTParser::WKTMeta meta_;
   util::GeometryType geometry_type_;
@@ -515,15 +516,15 @@ private:
     }
 
     switch (meta_.dimensions) {
-    case util::Dimensions::XYM:
-    case util::Dimensions::XYZ:
-      coord_size_ = 3;
-      break;
-    case util::Dimensions::XYZM:
-      coord_size_ = 4;
-      break;
-    default:
-      coord_size_ = 2;
+      case util::Dimensions::XYM:
+      case util::Dimensions::XYZ:
+        coord_size_ = 3;
+        break;
+      case util::Dimensions::XYZM:
+        coord_size_ = 4;
+        break;
+      default:
+        coord_size_ = 2;
     }
 
     Handler::Result result;
@@ -533,39 +534,37 @@ private:
       HANDLE_OR_RETURN(handler->geom_start(meta_.geometry_type, -1));
     }
 
-
     switch (meta_.geometry_type) {
+      case util::GeometryType::POINT:
+        HANDLE_OR_RETURN(this->readPoint(handler));
+        break;
 
-    case util::GeometryType::POINT:
-      HANDLE_OR_RETURN(this->readPoint(handler));
-      break;
+      case util::GeometryType::LINESTRING:
+        HANDLE_OR_RETURN(this->readLineString(handler));
+        break;
 
-    case util::GeometryType::LINESTRING:
-      HANDLE_OR_RETURN(this->readLineString(handler));
-      break;
+      case util::GeometryType::POLYGON:
+        HANDLE_OR_RETURN(this->readPolygon(handler));
+        break;
 
-    case util::GeometryType::POLYGON:
-      HANDLE_OR_RETURN(this->readPolygon(handler));
-      break;
+      case util::GeometryType::MULTIPOINT:
+        HANDLE_OR_RETURN(this->readMultiPoint(handler));
+        break;
 
-    case util::GeometryType::MULTIPOINT:
-      HANDLE_OR_RETURN(this->readMultiPoint(handler));
-      break;
+      case util::GeometryType::MULTILINESTRING:
+        HANDLE_OR_RETURN(this->readMultiLineString(handler));
+        break;
 
-    case util::GeometryType::MULTILINESTRING:
-      HANDLE_OR_RETURN(this->readMultiLineString(handler));
-      break;
+      case util::GeometryType::MULTIPOLYGON:
+        HANDLE_OR_RETURN(this->readMultiPolygon(handler));
+        break;
 
-    case util::GeometryType::MULTIPOLYGON:
-      HANDLE_OR_RETURN(this->readMultiPolygon(handler));
-      break;
+      case util::GeometryType::GEOMETRYCOLLECTION:
+        HANDLE_OR_RETURN(this->readGeometryCollection(handler));
+        break;
 
-    case util::GeometryType::GEOMETRYCOLLECTION:
-      HANDLE_OR_RETURN(this->readGeometryCollection(handler));
-      break;
-
-    default:
-      throw std::runtime_error("Unknown geometry type"); // # nocov
+      default:
+        throw std::runtime_error("Unknown geometry type");  // # nocov
     }
 
     return handler->geom_end();
@@ -585,7 +584,7 @@ private:
     return this->readCoordinates(handler);
   }
 
-  Handler::Result readPolygon(Handler* handler)  {
+  Handler::Result readPolygon(Handler* handler) {
     return this->readLinearRings(handler);
   }
 
@@ -596,7 +595,7 @@ private:
 
     Handler::Result result;
 
-    if (s.isNumber()) { // (0 0, 1 1)
+    if (s.isNumber()) {  // (0 0, 1 1)
       do {
         if (s.isEMPTY()) {
           HANDLE_OR_RETURN(handler->geom_start(util::GeometryType::POINT, 0));
@@ -608,7 +607,7 @@ private:
         HANDLE_OR_RETURN(handler->geom_end());
       } while (s.assertOneOf(",)") != ')');
 
-    } else { // ((0 0), (1 1))
+    } else {  // ((0 0), (1 1))
       do {
         if (s.isEMPTY()) {
           HANDLE_OR_RETURN(handler->geom_start(util::GeometryType::POINT, 0));
@@ -632,9 +631,11 @@ private:
 
     do {
       if (s.isEMPTY()) {
-        HANDLE_OR_RETURN(handler->geom_start(util::GeometryType::LINESTRING, 0));
+        HANDLE_OR_RETURN(
+            handler->geom_start(util::GeometryType::LINESTRING, 0));
       } else {
-        HANDLE_OR_RETURN(handler->geom_start(util::GeometryType::LINESTRING, -1));
+        HANDLE_OR_RETURN(
+            handler->geom_start(util::GeometryType::LINESTRING, -1));
       }
       HANDLE_OR_RETURN(this->readLineString(handler));
       HANDLE_OR_RETURN(handler->geom_end());
@@ -726,6 +727,6 @@ private:
   }
 };
 
-}
+}  // namespace geoarrow
 
 #undef _GEOARROW_FROM_CHARS

@@ -1,20 +1,20 @@
 
 #pragma once
 
-#include <cstdlib>
-#include <limits>
-#include <cstring>
 #include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
 #include <vector>
 
-#include "handler.hpp"
 #include "common.hpp"
+#include "handler.hpp"
 #include "internal/arrow-hpp/builder.hpp"
 
 namespace geoarrow {
 
 class ComputeOptions {
-public:
+ public:
   void set_bool(const std::string& key, bool value) {
     Item item;
     item.type_ = Type::BOOL;
@@ -25,8 +25,10 @@ public:
   bool get_bool(const std::string& key) const {
     const Item& item = get_item(key);
     switch (item.type_) {
-    case Type::BOOL: return item.bool_;
-    default: throw util::IOException("Can't coerce key '%s' to BOOL", key.c_str());
+      case Type::BOOL:
+        return item.bool_;
+      default:
+        throw util::IOException("Can't coerce key '%s' to BOOL", key.c_str());
     }
   }
 
@@ -48,19 +50,18 @@ public:
   struct ArrowSchema* get_schema(const std::string& key) const {
     const Item& item = get_item(key);
     switch (item.type_) {
-    case Type::SCHEMA: return item.schema_;
-    default: throw util::IOException("Can't coerce key '%s' to SCHEMA", key.c_str());
+      case Type::SCHEMA:
+        return item.schema_;
+      default:
+        throw util::IOException("Can't coerce key '%s' to SCHEMA", key.c_str());
     }
   }
 
-private:
-  enum Type {
-    BOOL,
-    SCHEMA
-  };
+ private:
+  enum Type { BOOL, SCHEMA };
 
   class Item {
-  public:
+   public:
     Type type_;
     bool bool_;
     struct ArrowSchema* schema_;
@@ -85,15 +86,16 @@ private:
   std::vector<Item> values_;
 };
 
-class ComputeBuilder: public arrow::hpp::builder::ArrayBuilder, public Handler {
-public:
+class ComputeBuilder : public arrow::hpp::builder::ArrayBuilder,
+                       public Handler {
+ public:
   ComputeBuilder(const ComputeOptions& options = ComputeOptions()) {
     schema_out_.release = nullptr;
     schema_out_.format = "";
 
     if (options.get_bool("strict", false)) {
-        struct ArrowSchema* schema = options.get_schema("schema");
-        arrow::hpp::schema_deep_copy(schema, &schema_out_);
+      struct ArrowSchema* schema = options.get_schema("schema");
+      arrow::hpp::schema_deep_copy(schema, &schema_out_);
     }
   }
 
@@ -103,17 +105,16 @@ public:
     }
   }
 
-protected:
+ protected:
   struct ArrowSchema schema_out_;
 
-  bool strict_schema() {
-    return schema_out_.format != std::string("");
-  }
+  bool strict_schema() { return schema_out_.format != std::string(""); }
 
   void finish_schema(struct ArrowSchema* schema) {
     bool is_strict = strict_schema();
 
-    if (is_strict && !arrow::hpp::schema_format_identical(schema, &schema_out_)) {
+    if (is_strict &&
+        !arrow::hpp::schema_format_identical(schema, &schema_out_)) {
       throw util::IOException(
           "schema_format_identical() is false with strict = true");
     } else if (is_strict) {
@@ -123,8 +124,8 @@ protected:
   }
 };
 
-class NullBuilder: public ComputeBuilder {
-public:
+class NullBuilder : public ComputeBuilder {
+ public:
   void release(struct ArrowArray* array_data, struct ArrowSchema* schema) {
     arrow::hpp::builder::CArrayFinalizer finalizer;
     finalizer.allocate(0);
@@ -134,4 +135,4 @@ public:
   }
 };
 
-}
+}  // namespace geoarrow

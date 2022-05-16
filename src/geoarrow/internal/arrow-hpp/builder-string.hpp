@@ -9,9 +9,9 @@ namespace hpp {
 
 namespace builder {
 
-class BinaryArrayBuilder: public ArrayBuilder {
-public:
-  BinaryArrayBuilder(): is_large_(false), item_size_(0) {
+class BinaryArrayBuilder : public ArrayBuilder {
+ public:
+  BinaryArrayBuilder() : is_large_(false), item_size_(0) {
     offset_buffer_builder_.write_element(0);
   }
 
@@ -52,24 +52,17 @@ public:
     return data_buffer_builder_.remaining_capacity();
   }
 
-  uint8_t* mutable_data() {
-    return data_buffer_builder_.mutable_data();
-  }
+  uint8_t* mutable_data() { return data_buffer_builder_.mutable_data(); }
 
-  uint8_t* data_at_cursor() {
-    return data_buffer_builder_.data_at_cursor();
-  }
+  uint8_t* data_at_cursor() { return data_buffer_builder_.data_at_cursor(); }
 
-  void advance_data(int64_t n) {
-    data_buffer_builder_.advance(n);
-  }
+  void advance_data(int64_t n) { data_buffer_builder_.advance(n); }
 
-  int64_t data_size() {
-    return data_buffer_builder_.size();
-  }
+  int64_t data_size() { return data_buffer_builder_.size(); }
 
   void write_element(const std::string& element) {
-    write_buffer(reinterpret_cast<const uint8_t*>(element.data()), element.size());
+    write_buffer(reinterpret_cast<const uint8_t*>(element.data()),
+                 element.size());
     finish_element(true);
   }
 
@@ -131,14 +124,15 @@ public:
     }
 
     for (int64_t i = 0; i < offset_buffer_builder_.size(); i++) {
-      large_offset_buffer_builder_.write_element(offset_buffer_builder_.data()[i]);
+      large_offset_buffer_builder_.write_element(
+          offset_buffer_builder_.data()[i]);
     }
 
     free(offset_buffer_builder_.release());
     is_large_ = true;
   }
 
-protected:
+ protected:
   bool is_large_;
   int64_t item_size_;
   builder::BufferBuilder<int32_t> offset_buffer_builder_;
@@ -146,13 +140,13 @@ protected:
   builder::BufferBuilder<uint8_t> data_buffer_builder_;
 
   bool needs_make_large(int64_t capacity) {
-    return !is_large_ &&
-      ((data_buffer_builder_.size() + capacity) > std::numeric_limits<int32_t>::max());
+    return !is_large_ && ((data_buffer_builder_.size() + capacity) >
+                          std::numeric_limits<int32_t>::max());
   }
 };
 
-class StringArrayBuilder: public BinaryArrayBuilder {
-public:
+class StringArrayBuilder : public BinaryArrayBuilder {
+ public:
   StringArrayBuilder() {}
 
   const char* get_format() {
@@ -162,11 +156,10 @@ public:
       return "u";
     }
   }
-
 };
 
-}
+}  // namespace builder
 
-}
+}  // namespace hpp
 
-}
+}  // namespace arrow
