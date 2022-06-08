@@ -10,8 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 option(BUILD_EXAMPLES "Build geoarrow-cpp examples" OFF)
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
-include_directories(src ${OPENSSL_INCLUDE_DIR})
-include_directories(src ${ABSL_INCLUDE_DIR})
+include_directories(src)
 add_library(geoarrow src/geoarrow/geoarrow.cpp)
 
 set_target_properties(geoarrow PROPERTIES
