@@ -24,7 +24,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_EXAMPLES=ON
+          cmake .. -DGEOARROW_BUILD_EXAMPLES=ON
           cmake --build .
           cmake --install . --prefix ../dist
 
